@@ -1,0 +1,89 @@
+parameters:
+- name: iso_url
+  type: string
+- name: iso_checksum
+  type: string
+- name: project_dir
+  type: string
+  values:
+  - "arch"
+  - "kali"
+- name: image_name
+  type: string
+- name: image_version
+  type: string
+
+variables:
+  spn_name: $(pipeline_spn_name)
+  target_regions: $(pipeline_target_regions)
+  az_subscription: $(pipeline_az_subscription)
+  az_storage_rg: $(pipeline_az_storage_rg)
+  az_storage_account: $(pipeline_az_storage_account)
+  az_storage_container: $(pipeline_az_storage_container)
+  az_gallery_rg: $(pipeline_az_gallery_rg)
+  az_gallery_name: $(pipeline_az_gallery_name)
+  image_exists: 0
+
+steps:
+- script: |
+    set -e
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+    sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+    sudo apt-add-repository "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main"
+    sudo apt-get update && sudo apt-get install -y azure-cli packer qemu-kvm
+  displayName: 'Install dependencies'
+
+- task: AzureCLI@2
+  displayName: 'Check if image already exists'
+  inputs:
+    azureSubscription: $(spn_name)
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      if (az sig image-version show -i ${{ parameters.image_name }} -e ${{ parameters.image_version }} -r $(az_gallery_name) -g $(az_gallery_rg) --subscription $(az_subscription)); \
+        then echo "##vso[task.setvariable variable=image_exists]1"; \
+      fi
+
+- script: sudo chown root:$USER /dev/kvm
+  displayName: 'Dirty update KVM for user access'
+  condition: and(succeeded(), eq(variables.image_exists, 0))
+
+- script: |
+    set -e
+    cd ${{ parameters.project_dir }}
+    PACKER_LOG=1 PACKER_KEY_INTERVAL=20ms packer build -var="iso_url=${{ parameters.iso_url }}" -var="iso_checksum=${{ parameters.iso_checksum }}" ./qemu-packer.pkr.hcl
+    qemu-img convert -f raw -o subformat=fixed,force_size -O vpc ./build/image.raw ./build/${{ parameters.image_name }}-${{ parameters.image_version }}.vhd
+  displayName: 'Setup raw QEMU image and convert'
+  condition: and(succeeded(), eq(variables.image_exists, 0))
+
+- task: AzureCLI@2
+  displayName: 'Upload VHD to Azure Storage'
+  inputs:
+    azureSubscription: $(spn_name)
+    scriptType: 'bash'
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      wget -q -c https://aka.ms/downloadazcopy-v10-linux -O - | tar -xvz && mv ./*/azcopy ./
+      export AZCOPY_SPA_CLIENT_SECRET="$servicePrincipalKey"
+      ./azcopy login --service-principal --application-id $servicePrincipalId --tenant-id $tenantId
+      ./azcopy cp ./${{ parameters.project_dir }}/build/${{ parameters.image_name }}-${{ parameters.image_version }}.vhd "https://$(az_storage_account).blob.core.windows.net/$(az_storage_container)/"
+      AZCOPY_SPA_CLIENT_SECRET=''
+      servicePrincipalKey=''
+      rm -rf ./${{ parameters.project_dir }}/build
+  condition: and(succeeded(), eq(variables.image_exists, 0))
+
+- task: AzureCLI@2
+  displayName: 'Add VM image version to Gallery'
+  inputs:
+    azureSubscription: $(spn_name)
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az sig image-version create -g ImageGallery \
+        -r spymky_images -i ${{ parameters.image_name }} -e ${{ parameters.image_version }} \
+        --os-vhd-storage-account /subscriptions/$(az_subscription)/resourceGroups/$(az_storage_rg)/providers/Microsoft.Storage/storageAccounts/$(az_storage_account) \
+        --os-vhd-uri https://$(az_storage_account).blob.core.windows.net/$(az_storage_container)/${{ parameters.image_name }}-${{ parameters.image_version }}.vhd --target-regions $(target_regions)
+  condition: and(succeeded(), eq(variables.image_exists, 0))

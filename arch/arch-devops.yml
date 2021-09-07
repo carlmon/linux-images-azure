@@ -1,0 +1,22 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - arch
+
+pr: none
+
+pool:
+  name: Ubuntu2004Pool
+
+extends:
+  template: ../devops-template.yaml
+  parameters:
+    project_dir: "arch"
+    iso_url: "http://ftp.fau.de/archlinux/iso/2021.09.01/archlinux-2021.09.01-x86_64.iso"
+    iso_checksum: "sha1:a0862c8189290e037ff156b93c60d6150b9363b3"
+    image_name: "ArchLinux"
+    image_version: "2021.09.01"
