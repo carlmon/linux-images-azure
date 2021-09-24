@@ -16,7 +16,7 @@ extends:
   template: ../devops-template.yaml
   parameters:
     project_dir: "kali"
-    iso_url: "https://cdimage.kali.org/kali-2021.2/kali-linux-2021.2-installer-netinst-amd64.iso"
-    iso_checksum: "sha256:bfe9e2797eff82996dfad8144c4d2c80d1aab2549e7f382ff17159f5018d44aa"
+    iso_url: "https://cdimage.kali.org/kali-2021.3/kali-linux-2021.3-installer-netinst-amd64.iso"
+    iso_checksum: "sha256:e06c26b2de306b1f4c12d015daf0b8e72b19672ee26ee2a5f2b86b828477dc1d"
     image_name: "KaliLinux"
-    image_version: "2021.2.0"
+    image_version: "2021.3.0"
