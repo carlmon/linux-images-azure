@@ -8,7 +8,7 @@ source "qemu" "kali" {
   iso_url           = var.iso_url
   iso_checksum      = var.iso_checksum
   output_directory  = "build"
-  shutdown_command  = "echo 'packer' | sudo -S shutdown -P now"
+  shutdown_command  = "shutdown -P now 'packer'"
   disk_size         = var.disk_size
   cpus              = 2
   memory            = 2048
