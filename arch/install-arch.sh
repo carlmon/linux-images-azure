@@ -14,8 +14,9 @@ function prepare_disk() {
 }
 
 function run_pacstrap() {
-    sed -i "s/#ParallelDownloads/ParallelDownloads/g" /etc/pacman.conf
     pacstrap /mnt base linux linux-firmware
+    # enable parallel downloads *after* pacstrap to avoid keyring errors
+    sed -i "s/#ParallelDownloads/ParallelDownloads/g" /etc/pacman.conf
 }
 
 function configure() {
