@@ -30,5 +30,6 @@ This project does **NOT** provide VM images to the general public. **Never use O
 
 ## To Do
 * Migrate to UEFI-based boot and [Azure Gen2 VMs](https://docs.microsoft.com/en-us/azure/virtual-machines/generation-2#features-and-capabilities)
+  * Installing Debian on UEFI does not seem to support Preseed files.
 * Implement full disk encryption for VMs with [dm-crypt](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/disk-encryption-overview)
 * Auto-create swap with [cloud-init on Kali VM](https://wiki.ubuntu.com/AzureSwapPartitions). It works by default on Arch

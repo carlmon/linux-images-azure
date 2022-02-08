@@ -16,7 +16,7 @@ extends:
   template: ../devops-template.yaml
   parameters:
     project_dir: "arch"
-    iso_url: "http://ftp.fau.de/archlinux/iso/2022.01.01/archlinux-2022.01.01-x86_64.iso"
-    iso_checksum: "sha1:efc9c33087e756ba1c7f326e67bfaa685eb51be3"
+    iso_url: "http://ftp.fau.de/archlinux/iso/2022.02.01/archlinux-2022.02.01-x86_64.iso"
+    iso_checksum: "sha1:3f3ba996e7d8e0b15d911180682093cd8fe6b805"
     image_name: "ArchLinux"
-    image_version: "2022.01.01"
+    image_version: "2022.02.01"
