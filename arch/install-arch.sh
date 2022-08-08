@@ -14,6 +14,17 @@ function prepare_disk() {
 }
 
 function run_pacstrap() {
+    rm -rf /etc/pacman.d/gnupg
+
+    # kill all gpg-agent process if running any
+    killall gpg-agent
+
+    # initialize the key database
+    pacman-key --init
+
+    # populate the archlinux keyring
+    pacman-key --populate archlinux
+
     pacstrap /mnt base linux linux-firmware
     # enable parallel downloads *after* pacstrap to avoid keyring errors
     sed -i "s/#ParallelDownloads/ParallelDownloads/g" /etc/pacman.conf
